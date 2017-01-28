@@ -10,4 +10,4 @@ npm install https://github.com/redzumi/snapmatic-converter -g
 ```
 snapmatic-converter <path to directory with snapmatic files (like PGTA5505123456) >
 ```
-Snapmatic files usually located at C:\Users\<username>\Documents\Rockstar Games\GTA V\Profiles\<random>
+Snapmatic files usually located at ```C:\Users\<username>\Documents\Rockstar Games\GTA V\Profiles\<random>```
