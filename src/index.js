@@ -4,50 +4,47 @@ import fs             from 'fs';
 
 const promisify       = Promise.promisify;
 const outputDir       = 'converted/';
+const delimiter       = new Buffer([0xff, 0xd8]);
 
 class GTASnapmaticConverter {
-
   constructor() {
     if(process.argv.length <= 2) {
       console.log(`Usage:  ${__filename} <directory>`);
       process.exit(-1);
     }
-    this.convert(process.argv[2] + '/');
+    this.convert(process.argv[2] + '/')
+      .then(() => {
+        console.log('done');
+      })
   }
 
   convert = async (filesDir) => {
     await this.createDirectory(filesDir + outputDir);
     let files = await this.getFilesToConvert(filesDir);
-    for(let file of files) {
+    for(let filename of files) {
       let convertedFile = await this.convertToJpg(
-        filesDir + file,
-        filesDir + outputDir + file.split('.').pop() + '.jpg'
-      );
-      console.log('converted file: ' + convertedFile);
+        await this.readFile(filesDir + filename));
+
+      let savedFile = await this.saveFile(convertedFile,
+        filesDir, filename.split('.').pop() + '.jpg');
+
+      console.log('converted file: ' + savedFile);
     }
   };
 
-  getFilesToConvert(dir) {
-    return promisify(fs.readdir)(dir)
-      .then((files) => {
-        let foundFiles = [];
-        for(let file of files) {
-          if(file.startsWith('PGTA')) foundFiles.push(file);
-        }
-        return foundFiles;
-      })
+  convertToJpg(file) {
+    return file.slice(file.indexOf(delimiter), file.length);
   }
 
-  convertToJpg(inputFile, outputFile) {
-    return promisify(fs.readFile)(inputFile, 'hex')
-      .then((data) => { return this.saveJpg(outputFile, data) })
-  }
-
-  saveJpg(outputFile, data) {
-    return promisify(fs.writeFile)(
-      outputFile,
-      data.replace(data.split('ffd8')[0], ''), 'hex')
+  saveFile(data, dir, filename) {
+    let outputFile = dir + outputDir + filename;
+    return promisify(fs.writeFile)(outputFile, data)
       .then(() => { return outputFile; });
+  }
+
+  readFile(filename) {
+    return promisify(fs.readFile)(filename)
+      .then((data) => { return data; })
   }
 
   createDirectory(dir) {
@@ -59,6 +56,16 @@ class GTASnapmaticConverter {
       });
   }
 
+  getFilesToConvert(dir) {
+    return promisify(fs.readdir)(dir)
+      .then((files) => {
+        let foundFiles = [];
+        for(let file of files) {
+          if(file.startsWith('PGTA')) foundFiles.push(file);
+        }
+        return foundFiles;
+      })
+  }
 }
 
 new GTASnapmaticConverter();

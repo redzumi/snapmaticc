@@ -33,6 +33,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var promisify = _bluebird2.default.promisify;
 var outputDir = 'converted/';
+var delimiter = new Buffer([0xff, 0xd8]);
 
 var GTASnapmaticConverter = function () {
   function GTASnapmaticConverter() {
@@ -42,7 +43,7 @@ var GTASnapmaticConverter = function () {
 
     this.convert = function () {
       var _ref = (0, _asyncToGenerator3.default)(_regenerator2.default.mark(function _callee(filesDir) {
-        var files, _iteratorNormalCompletion, _didIteratorError, _iteratorError, _iterator, _step, file, convertedFile;
+        var files, _iteratorNormalCompletion, _didIteratorError, _iteratorError, _iterator, _step, filename, convertedFile, savedFile;
 
         return _regenerator2.default.wrap(function _callee$(_context) {
           while (1) {
@@ -65,64 +66,76 @@ var GTASnapmaticConverter = function () {
 
               case 10:
                 if (_iteratorNormalCompletion = (_step = _iterator.next()).done) {
-                  _context.next = 19;
+                  _context.next = 26;
                   break;
                 }
 
-                file = _step.value;
-                _context.next = 14;
-                return _this.convertToJpg(filesDir + file, filesDir + outputDir + file.split('.').pop() + '.jpg');
+                filename = _step.value;
+                _context.t0 = _this;
+                _context.next = 15;
+                return _this.readFile(filesDir + filename);
 
-              case 14:
+              case 15:
+                _context.t1 = _context.sent;
+                _context.next = 18;
+                return _context.t0.convertToJpg.call(_context.t0, _context.t1);
+
+              case 18:
                 convertedFile = _context.sent;
+                _context.next = 21;
+                return _this.saveFile(convertedFile, filesDir, filename.split('.').pop() + '.jpg');
 
-                console.log('converted file: ' + convertedFile);
+              case 21:
+                savedFile = _context.sent;
 
-              case 16:
+
+                console.log('converted file: ' + savedFile);
+
+              case 23:
                 _iteratorNormalCompletion = true;
                 _context.next = 10;
                 break;
 
-              case 19:
-                _context.next = 25;
+              case 26:
+                _context.next = 32;
                 break;
 
-              case 21:
-                _context.prev = 21;
-                _context.t0 = _context['catch'](8);
+              case 28:
+                _context.prev = 28;
+                _context.t2 = _context['catch'](8);
                 _didIteratorError = true;
-                _iteratorError = _context.t0;
+                _iteratorError = _context.t2;
 
-              case 25:
-                _context.prev = 25;
-                _context.prev = 26;
+              case 32:
+                _context.prev = 32;
+                _context.prev = 33;
 
                 if (!_iteratorNormalCompletion && _iterator.return) {
                   _iterator.return();
                 }
 
-              case 28:
-                _context.prev = 28;
+              case 35:
+                _context.prev = 35;
 
                 if (!_didIteratorError) {
-                  _context.next = 31;
+                  _context.next = 38;
                   break;
                 }
 
                 throw _iteratorError;
 
-              case 31:
-                return _context.finish(28);
+              case 38:
+                return _context.finish(35);
 
-              case 32:
-                return _context.finish(25);
+              case 39:
+                return _context.finish(32);
 
-              case 33:
+              case 40:
               case 'end':
                 return _context.stop();
             }
           }
-        }, _callee, _this, [[8, 21, 25, 33], [26,, 28, 32]]);
+        }, _callee, _this, [[8, 28, 32, 40], [33,, 35, 39]]);
       }));
 
       return function (_x) {
@@ -134,10 +147,39 @@ var GTASnapmaticConverter = function () {
       console.log('Usage:  ' + __filename + ' <directory>');
       process.exit(-1);
     }
-    this.convert(process.argv[2] + '/');
+    this.convert(process.argv[2] + '/').then(function () {
+      console.log('done');
+    });
   }
 
   (0, _createClass3.default)(GTASnapmaticConverter, [{
+    key: 'convertToJpg',
+    value: function convertToJpg(file) {
+      return file.slice(file.indexOf(delimiter), file.length);
+    }
+  }, {
+    key: 'saveFile',
+    value: function saveFile(data, dir, filename) {
+      var outputFile = dir + outputDir + filename;
+      return promisify(_fs2.default.writeFile)(outputFile, data).then(function () {
+        return outputFile;
+      });
+    }
+  }, {
+    key: 'readFile',
+    value: function readFile(filename) {
+      return promisify(_fs2.default.readFile)(filename).then(function (data) {
+        return data;
+      });
+    }
+  }, {
+    key: 'createDirectory',
+    value: function createDirectory(dir) {
+      return promisify(_fs2.default.stat)(dir).then(null).catch(function (err) {
+        if (err.code == 'ENOENT') return promisify(_fs2.default.mkdir)(dir);
+      });
+    }
+  }, {
     key: 'getFilesToConvert',
     value: function getFilesToConvert(dir) {
       return promisify(_fs2.default.readdir)(dir).then(function (files) {
@@ -168,29 +210,6 @@ var GTASnapmaticConverter = function () {
         }
 
         return foundFiles;
-      });
-    }
-  }, {
-    key: 'convertToJpg',
-    value: function convertToJpg(inputFile, outputFile) {
-      var _this2 = this;
-
-      return promisify(_fs2.default.readFile)(inputFile, 'hex').then(function (data) {
-        return _this2.saveJpg(outputFile, data);
-      });
-    }
-  }, {
-    key: 'saveJpg',
-    value: function saveJpg(outputFile, data) {
-      return promisify(_fs2.default.writeFile)(outputFile, data.replace(data.split('ffd8')[0], ''), 'hex').then(function () {
-        return outputFile;
-      });
-    }
-  }, {
-    key: 'createDirectory',
-    value: function createDirectory(dir) {
-      return promisify(_fs2.default.stat)(dir).then(null).catch(function (err) {
-        if (err.code == 'ENOENT') return promisify(_fs2.default.mkdir)(dir);
       });
     }
   }]);
